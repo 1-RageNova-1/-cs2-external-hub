@@ -133,6 +133,20 @@ bool Config::ReadImpl() {
 
 		// utils
 		//cfg::settings::console = data["utils"].value("console", true);
+		
+		cfg::aimbot::enabled = data["aimbot"].value("enabled", false);
+		cfg::aimbot::team_check = data["aimbot"].value("team_check", true);
+		cfg::aimbot::visible_only = data["aimbot"].value("visible_only", true);
+		cfg::aimbot::draw_fov = data["aimbot"].value("draw_fov", true);
+		cfg::aimbot::key = data["aimbot"].value("key", 0x06);
+		cfg::aimbot::bone = data["aimbot"].value("bone", 6);
+		cfg::aimbot::fov = data["aimbot"].value("fov", 5.f);
+		cfg::aimbot::smooth = data["aimbot"].value("smooth", 4.f);
+		cfg::aimbot::rcs = data["aimbot"].value("rcs", false);
+		cfg::aimbot::rcs_scale = data["aimbot"].value("rcs_scale", 2.f);
+		cfg::aimbot::mouse_aim = data["aimbot"].value("mouse_aim", true);
+		cfg::esp::flags::hit_status = data["esp"]["flags"].value("hit_status", true);
+
 		cfg::settings::watermark = data["utils"].value("watermark", true);
 		cfg::settings::streamproof = data["utils"].value("streamproof", false);
 		cfg::settings::vsync = data["utils"].value("vsync", true);
@@ -253,6 +267,20 @@ bool Config::WriteImpl() {
 
 	// utils
 	//data["utils"]["console"] = cfg::settings::console;
+	
+	data["aimbot"]["enabled"] = cfg::aimbot::enabled;
+	data["aimbot"]["team_check"] = cfg::aimbot::team_check;
+	data["aimbot"]["visible_only"] = cfg::aimbot::visible_only;
+	data["aimbot"]["draw_fov"] = cfg::aimbot::draw_fov;
+	data["aimbot"]["key"] = cfg::aimbot::key;
+	data["aimbot"]["bone"] = cfg::aimbot::bone;
+	data["aimbot"]["fov"] = cfg::aimbot::fov;
+	data["aimbot"]["smooth"] = cfg::aimbot::smooth;
+	data["aimbot"]["rcs"] = cfg::aimbot::rcs;
+	data["aimbot"]["rcs_scale"] = cfg::aimbot::rcs_scale;
+	data["aimbot"]["mouse_aim"] = cfg::aimbot::mouse_aim;
+	data["esp"]["flags"]["hit_status"] = cfg::esp::flags::hit_status;
+
 	data["utils"]["watermark"] = cfg::settings::watermark;
 	data["utils"]["streamproof"] = cfg::settings::streamproof;
 	data["utils"]["vsync"] = cfg::settings::vsync;

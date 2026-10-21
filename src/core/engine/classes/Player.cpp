@@ -112,7 +112,14 @@ bool Player::UpdatePawn() {
 
 	this->armor = p->read<int>(pawn + offsets::pawn::m_ArmorValue);
 	this->defusing = p->read<bool>(pawn + offsets::pawn::m_bIsDefusing);
-	this->spotted = p->read<bool>(pawn + offsets::pawn::m_entitySpottedState + offsets::pawn::m_bSpottedByMask);
+	// SpottedByMask: bit per controller slot who has vision on this pawn
+	p->read_raw(
+		pawn + offsets::pawn::m_entitySpottedState + offsets::pawn::m_bSpottedByMask,
+		this->spotted_mask,
+		sizeof(this->spotted_mask)
+	);
+	// m_bSpotted = anyone; refined against local in aimbot/esp
+	this->spotted = p->read<bool>(pawn + offsets::pawn::m_entitySpottedState + offsets::pawn::m_bSpotted);
 	this->flashed = p->read<float>(pawn + offsets::pawn::m_flFlashOverlayAlpha) > 0;
 	this->scoped = p->read<bool>(pawn + offsets::pawn::m_bIsScoped);
 

@@ -5,6 +5,12 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="gui\frontend\aimbot">
+      <UniqueIdentifier>{B2C3D4E5-F6A7-8901-BCDE-F12345678901}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gui\frontend\splash">
+      <UniqueIdentifier>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
@@ -100,12 +106,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gui\frontend\overlays\Overlays.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="updater\Updater.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="updater\http\HttpHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core\engine\classes\Bomb.cpp">
@@ -378,12 +378,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gui\frontend\overlays\Overlays.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="updater\Updater.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="updater\http\HttpHelper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\engine\classes\Bomb.hpp">

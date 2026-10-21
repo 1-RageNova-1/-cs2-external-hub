@@ -28,6 +28,7 @@ public:
     bool scoped = false;
     bool flashed = false;
     bool spotted = false;
+    uint32_t spotted_mask[2]{}; // EntitySpottedState_t::m_bSpottedByMask
     bool defusing = false;
     bool localplayer = false;
     bool has_c4 = false;

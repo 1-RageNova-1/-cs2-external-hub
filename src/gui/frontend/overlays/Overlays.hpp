@@ -39,6 +39,5 @@ private:
     void RenderEspStatus();
     void RenderWatermark();
     void RenderSpeedChart();
-    void RenderDebugWindow();
     void RenderSpectatorList();
 };

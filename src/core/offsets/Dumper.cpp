@@ -90,6 +90,40 @@ bool Dumper::InitImpl() {
     LOGF(VERBOSE, "Found 'csgoInput' offset at 0x{:X}", offsets::csgoInput);
 #endif
 
+
+    // View Angles (aimbot)
+    // Previous sig resolved to dwViewRender (0x2568968) — garbage floats.
+    // Prefer signature, then validate pitch/yaw range; else a2x fallback.
+    {
+        bool ok = false;
+        if ((temp = Scan(offsets::signatures::viewAngles, client))) {
+            offsets::viewAngles = temp - client.base;
+            float test[3]{};
+            if (process->read_raw(client.base + offsets::viewAngles, test, sizeof(test))) {
+                if (test[0] >= -89.f && test[0] <= 89.f && test[1] >= -180.f && test[1] <= 180.f)
+                    ok = true;
+            }
+            if (!ok)
+                LOGF(WARNING, "viewAngles sig hit 0x{:X} but values invalid ({:.1f}, {:.1f})", offsets::viewAngles, test[0], test[1]);
+        }
+
+        if (!ok) {
+            offsets::viewAngles = offsets::viewAngles_fallback;
+            float test[3]{};
+            if (process->read_raw(client.base + offsets::viewAngles, test, sizeof(test))
+                && test[0] >= -89.f && test[0] <= 89.f && test[1] >= -180.f && test[1] <= 180.f) {
+                ok = true;
+                LOGF(INFO, "Using viewAngles fallback 0x{:X} (validated {:.1f}, {:.1f})", offsets::viewAngles, test[0], test[1]);
+            }
+            else {
+                LOGF(WARNING, "viewAngles fallback 0x{:X} also invalid — aimbot may fail until offsets update", offsets::viewAngles);
+            }
+        }
+        else {
+            LOGF(INFO, "Found 'viewAngles' offset at 0x{:X}", offsets::viewAngles);
+        }
+    }
+
     // engine2.dll
 
     // Build Number

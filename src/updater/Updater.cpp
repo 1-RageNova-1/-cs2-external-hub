@@ -16,15 +16,16 @@ bool Updater::InitImpl() {
 	json response;
 	auto http_status = HttpHelper::Get(this->status_url, response);
 
-	if (http_status == -1)
-		LOGF(FATAL, "Failed to fetch status json from the repository");
-
-	if (http_status == -2) // It might be caused for a 429 or a non json response
-		LOGF(FATAL, "Failed to parse status json");
-
+	// Soft-fail: missing status.json on a fork must never block startup
 	if (http_status != 200) {
-		LOGF(FATAL, "Server returned non successfull status code {}", http_status);
-		return false;
+		LOGF(WARNING, "Updater status unavailable (code {}), continuing without remote status", http_status);
+		isSetup = true;
+		status.unsafe = false;
+		status.notice = "";
+		status.version_current = current_version;
+		status.version_minimum = current_version;
+		LOGF(INFO, "Successfully initialized updater (offline)...");
+		return true;
 	}
 
 	isSetup = true;
@@ -38,8 +39,13 @@ bool Updater::InitImpl() {
 	}
 	catch (std::exception& e) {
 		LOGF(VERBOSE, e.what());
-		LOGF(FATAL, "Failed to parse status json, the structure may have changed and an update is most likely required");
-		return false;
+		LOGF(WARNING, "Failed to parse status json, continuing with defaults");
+		status.unsafe = false;
+		status.notice = "";
+		status.version_current = current_version;
+		status.version_minimum = current_version;
+		LOGF(INFO, "Successfully initialized updater (offline)...");
+		return true;
 	}
 
 	if (status.unsafe)
@@ -67,7 +73,7 @@ bool Updater::ProcessImpl() {
 		auto result = MessageBox(
 			NULL, 
 			"This application has been marked as \"Unsafe\" to use, its not recommended to proceed.\nDo you want to continue?"
-			"\n\nMore information available at: https://github.com/IMXNOOBX/cs2-external-esp"
+			"\n\nMore information available at: https://github.com/1-RageNova-1/-cs2-external-hub"
 			"\n\nCtrl+C To copy this message",
 			"Unsafe | Warning", MB_ICONWARNING | MB_YESNO
 		);
@@ -85,7 +91,7 @@ bool Updater::ProcessImpl() {
 		auto result = MessageBox(
 			NULL,
 			"This application is \"out-of-date\", and might not work as expected.\nDo you want to continue?"
-			"\n\nMore information available at: https://github.com/IMXNOOBX/cs2-external-esp"
+			"\n\nMore information available at: https://github.com/1-RageNova-1/-cs2-external-hub"
 			"\n\nCtrl+C To copy this message",
 			"Out Of Date | Warning", MB_ICONWARNING | MB_YESNO
 		);

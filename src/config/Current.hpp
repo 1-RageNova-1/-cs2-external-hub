@@ -21,6 +21,7 @@ namespace cfg {
 
 		namespace flags {
 			inline bool name = true;
+			inline bool hit_status = true; // VIS / WALL on nametag
 			inline bool ping = true;
 			inline bool weapon = false;
 			inline bool ammo = false;
@@ -106,6 +107,21 @@ namespace cfg {
 		}
 	}
 
+
+	namespace aimbot {
+		inline bool enabled = false;
+		inline bool debug = false;
+		inline bool team_check = true;
+		inline bool visible_only = true;   // wallcheck via spotted
+		inline bool draw_fov = true;
+		inline int key = 0x06;             // mouse side button 2
+		inline int bone = 7;              // head
+		inline float fov = 5.f;
+		inline float smooth = 4.f;
+		inline bool rcs = false;
+		inline float rcs_scale = 2.f;
+		inline bool mouse_aim = true; // mouse delta instead of angle write (more reliable external)
+	}
 	namespace triggerbot {
 		inline bool enabled = false;
 		inline bool team_check = true;

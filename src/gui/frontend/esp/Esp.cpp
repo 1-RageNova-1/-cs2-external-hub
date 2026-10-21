@@ -8,6 +8,22 @@ bool Esp::Init() {
 	return GetInstance().InitImpl();
 }
 
+
+static bool SpottedByLocal(const Player& target, const Player& local) {
+	// controller entity index slots are typically 1..64
+	int slot = local.index + 1; // entity list index often 0-based controller slot
+	if (slot < 0) slot = 0;
+	// try both local.index and local.index+1 — CS2 mask uses player slot
+	auto bit_set = [&](int s) -> bool {
+		if (s < 0 || s >= 64) return false;
+		return (target.spotted_mask[s / 32] & (1u << (s % 32))) != 0;
+	};
+	if (bit_set(local.index) || bit_set(local.index + 1))
+		return true;
+	// fallback: m_bSpotted only if mask empty (loading edge case)
+	return false;
+}
+
 void Esp::Render() {
     return GetInstance().RenderImpl();
 }
@@ -71,7 +87,7 @@ void Esp::RenderImpl() {
 		if (!cfg::esp::team && mate)
 			continue;
 
-		if (cfg::esp::spotted && !player.spotted)
+		if (cfg::esp::spotted && !SpottedByLocal(player, local))
 			continue;
 
 		// Are we spectating the player in first person? then dont render
@@ -82,6 +98,7 @@ void Esp::RenderImpl() {
 		)
 			continue;
 
+		player.spotted = SpottedByLocal(player, local);
 		RenderPlayerTracers(local, player, mate);
 		RenderPlayer(player, mate);
 	}
@@ -247,6 +264,20 @@ void Esp::RenderPlayerFalgs(Player player, std::pair<Vec2_t, Vec2_t> bounds, boo
 			), 
 			IM_COL32(255, 255, 255, 255),
 			sanitized_name.data()
+		);
+	}
+
+	if (cfg::esp::flags::hit_status) {
+		const char* tag = player.spotted ? "VIS" : "WALL";
+		const ImU32 col = player.spotted ? IM_COL32(80, 255, 120, 255) : IM_COL32(255, 160, 40, 255);
+		auto tag_size = ImGui::CalcTextSize(tag);
+		d->AddText(
+			Vec2_t(
+				(bounds.first.x + bounds.second.x) / 2 - tag_size.x / 2,
+				bounds.first.y - (cfg::esp::flags::name ? 34.f : 20.f)
+			),
+			col,
+			tag
 		);
 	}
 

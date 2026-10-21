@@ -3,6 +3,9 @@ namespace offsets
 	// client.dll
 	inline DWORD entityList;
 	inline DWORD viewMatrix;
+	inline DWORD viewAngles;
+	// a2x cs2-dumper 2026-10-06 — used if signature fails validation
+	constexpr DWORD viewAngles_fallback = 0x257BCC8; // build 14191 (2026-10-15) dwViewAngles
 	inline DWORD localPlayerController;
 	inline DWORD globalVars;
 	inline DWORD plantedC4;
@@ -33,6 +36,7 @@ namespace offsets
 		constexpr std::ptrdiff_t m_pGameSceneNode = 0x330; // CGameSceneNode*
 
 		constexpr std::ptrdiff_t m_entitySpottedState = 0x1E88; // EntitySpottedState_t
+		constexpr std::ptrdiff_t m_bSpotted = 0x8; // bool - EntitySpottedState_t
 		constexpr std::ptrdiff_t m_bSpottedByMask = 0xC; // uint32[2] - EntitySpottedState_t
 
 		constexpr std::ptrdiff_t m_flFlashOverlayAlpha = 0x1504; // float32 - C_CSPlayerPawnBase 
@@ -48,7 +52,8 @@ namespace offsets
 
 		// Crosshair entity index (C_CSPlayerPawn) – used by triggerbot
 		// Source: a2x/cs2-dumper (update when game patches)
-		constexpr std::ptrdiff_t m_iIDEntIndex = 0x36CC; // CEntityIndex
+		inline std::ptrdiff_t m_iIDEntIndex = 0x36DC; // runtime-updatable
+		inline std::ptrdiff_t m_aimPunchAngle = 0x16CC;
 	}
 
 	namespace bomb {
@@ -103,6 +108,8 @@ namespace offsets
 		const std::string viewAngles = "F2 42 0F 10 84 28 ?? ?? ?? ??";
 #endif
 
+		// Intentionally left without a fragile sig — Dumper uses validated fallback
+		const std::string viewAngles = "48 8D 05 ?? ?? ?? ?? F2 0F 11 44 24";
 		const std::string buildNumber = "89 05 ?? ?? ?? ?? 48 8d 0d ?? ?? ?? ?? ff 15 ?? ?? ?? ?? 48 8b 0d";
 
 	}

@@ -1,7 +1,10 @@
 #include "Menu.hpp"
+#include <thread>
+#include <cstring>
 
 #include "core/engine/cache/Cache.hpp"
-#include "gui/renderer/Renderer.hpp" // Circular dependency
+#include "gui/renderer/Renderer.hpp"
+#include "core/offsets/OffsetSync.hpp" // Circular dependency
 #include "gui/renderer/window/Window.hpp" // Circular dependency
 #include "assets/fonts/Icons.h";
 
@@ -41,11 +44,7 @@ void Menu::RenderImpl() {
 	static auto screen = io.DisplaySize;
 	static auto color_flags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_None;
 
-#ifdef _DEBUG
-	static auto title = "github.com/IMXNOOBX/cs2-external-esp (recode) [DEV]";
-#else
-	static auto title = "cs2-external-esp | recode";
-#endif
+	static auto title = "RageNova | CS2 External";
 
 	ImGui::SetNextWindowSize(ImVec2(600, 370), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowPos(ImVec2(screen.x / 2 - 300, screen.y / 2 - 150), ImGuiCond_FirstUseEver);
@@ -87,10 +86,7 @@ void Menu::RenderImpl() {
 				ImGui::SetCursorPosY(ImGui::GetCursorPos().y + space - 16.f * 3);
 
 				ImGui::Dummy(ImVec2(11, 0)); ImGui::SameLine();
-				ImGui::TextLinkOpenURL(Icons::DISCORD, "https://discord.gg/pRew8ZDkyp");
-				ImGui::SameLine();
-				ImGui::Dummy(ImVec2(11, 0)); ImGui::SameLine();
-				ImGui::TextLinkOpenURL(Icons::GITHUB, "https://github.com/IMXNOOBX/cs2-external-esp");
+				ImGui::TextLinkOpenURL(Icons::GITHUB, "https://github.com/1-RageNova-1/-cs2-external-hub");
 				ImGui::Separator();
 
 				ImGui::Checkbox("Enable", &cfg::enabled);
@@ -162,7 +158,8 @@ void Menu::RenderImpl() {
 						ImGui::Checkbox("Spotted", &cfg::esp::spotted);
 						ImGui::SetItemTooltip("Esp will only be visible if the player has been spotted by you");
 
-						ImGui::Checkbox("Show Team", &cfg::esp::team);
+						ImGui::Checkbox("Show Teammates", &cfg::esp::team);
+						ImGui::SetItemTooltip("Uncheck to hide teammates from ESP");
 					}
 					ImGui::EndGroup();
 
@@ -174,6 +171,8 @@ void Menu::RenderImpl() {
 
 					ImGui::BeginGroup();
 					{
+						ImGui::Checkbox("Hit Status (VIS/WALL)", &cfg::esp::flags::hit_status);
+						ImGui::SetItemTooltip("Shows if target is spotted (can hit) or behind wall");
 						ImGui::Checkbox("Flashed", &cfg::esp::flags::flashed);
 						ImGui::BeginDisabled(!cfg::esp::flags::flashed);
 						{
@@ -291,6 +290,43 @@ void Menu::RenderImpl() {
 				}
 				else if (active_tab == Tab::COMBAT)
 				{
+					ImGui::Text("Aimbot");
+					ImGui::Separator();
+
+					ImGui::Checkbox("Enable Aimbot", &cfg::aimbot::enabled);
+					ImGui::Checkbox("Aimbot Debug (console)", &cfg::aimbot::debug);
+					ImGui::BeginDisabled(!cfg::aimbot::enabled);
+					{
+						ImGui::Checkbox("Team Check##aim", &cfg::aimbot::team_check);
+						ImGui::Checkbox("Wallcheck (visible only)", &cfg::aimbot::visible_only);
+						ImGui::SetItemTooltip("Only aim at spotted enemies (external visibility)");
+						ImGui::Checkbox("Draw FOV", &cfg::aimbot::draw_fov);
+						ImGui::Checkbox("Mouse Aim (recommended)", &cfg::aimbot::mouse_aim);
+						ImGui::SetItemTooltip("Moves mouse instead of writing viewangles — works better external");
+						ImGui::Checkbox("RCS", &cfg::aimbot::rcs);
+						ImGui::BeginDisabled(!cfg::aimbot::rcs);
+						ImGui::SliderFloat("RCS Scale", &cfg::aimbot::rcs_scale, 1.f, 3.f, "%.1f");
+						ImGui::EndDisabled();
+
+						ImGui::SliderFloat("FOV", &cfg::aimbot::fov, 0.5f, 30.f, "%.1f");
+						ImGui::SliderFloat("Smooth", &cfg::aimbot::smooth, 1.f, 20.f, "%.1f");
+						ImGui::SetItemTooltip("1 = instant snap, higher = more human");
+
+						const char* bones[] = { "Head", "Neck", "Chest" };
+						int bone_sel = 0;
+						if (cfg::aimbot::bone == 6) bone_sel = 1;
+						else if (cfg::aimbot::bone == 23) bone_sel = 2;
+						if (ImGui::Combo("Bone", &bone_sel, bones, 3)) {
+							cfg::aimbot::bone = (bone_sel == 0) ? 7 : (bone_sel == 1) ? 6 : 23;
+						}
+
+						ImGui::Text("Hold key (VK code)");
+						ImGui::InputInt("##aim_key", &cfg::aimbot::key);
+						ImGui::SetItemTooltip("Default 0x06 = Mouse Side Button 2. Set 0 for always-on.");
+					}
+					ImGui::EndDisabled();
+
+					ImGui::Spacing();
 					ImGui::Text("Triggerbot");
 					ImGui::Separator();
 
@@ -299,7 +335,7 @@ void Menu::RenderImpl() {
 
 					ImGui::BeginDisabled(!cfg::triggerbot::enabled);
 					{
-						ImGui::Checkbox("Team Check", &cfg::triggerbot::team_check);
+						ImGui::Checkbox("Team Check##tb", &cfg::triggerbot::team_check);
 						ImGui::Checkbox("Ignore if already shooting", &cfg::triggerbot::ignore_already_shooting);
 
 						ImGui::SliderInt("Delay (ms)", &cfg::triggerbot::delay_ms, 0, 200);
@@ -330,7 +366,42 @@ void Menu::RenderImpl() {
 						Window::vsync = cfg::settings::vsync;
 
 					ImGui::Checkbox("Free CPU", &cfg::settings::free_cpu);
+
 					ImGui::SetItemTooltip("Let the CPU sleep to Free Resources\nNOTE: might cause performance issues in lower end computers!");
+
+					ImGui::Spacing();
+					ImGui::Separator();
+					ImGui::Text("Offsets");
+					ImGui::Separator();
+					{
+						static char url_buf[512]{};
+						static bool url_init = false;
+						if (!url_init) {
+							strncpy_s(url_buf, OffsetSync::url.c_str(), _TRUNCATE);
+							url_init = true;
+						}
+						if (ImGui::InputText("URL", url_buf, sizeof(url_buf)))
+							OffsetSync::url = url_buf;
+						if (ImGui::Button("Update Offsets", ImVec2(-1, 28))) {
+							OffsetSync::url = url_buf;
+							std::thread([] { OffsetSync::FetchAndApply(); }).detach();
+						}
+						ImGui::Text("Status: %s", OffsetSync::last_status.c_str());
+						if (!OffsetSync::last_error.empty())
+							ImGui::TextColored(ImVec4(1.f, 0.4f, 0.4f, 1.f), "%s", OffsetSync::last_error.c_str());
+					}
+					ImGui::Spacing();
+
+					ImGui::Text("Uninject");
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.12f, 0.12f, 1.f));
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.75f, 0.18f, 0.18f, 1.f));
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.90f, 0.20f, 0.20f, 1.f));
+					if (ImGui::Button("UNINJECT", ImVec2(-1, 32))) {
+						LOGF(INFO, "[unload] menu button — safe uninject");
+						Renderer::Destroy();
+					}
+					ImGui::PopStyleColor(3);
+					ImGui::SetItemTooltip("Stops aimbot/triggerbot, saves config, closes overlay.\nHotkeys: END or DELETE");
 
 					ImGui::Text("Notes");
 					ImGui::Separator();
@@ -341,30 +412,7 @@ void Menu::RenderImpl() {
 						"\t- Last Resort: Disable \"Free CPU\" option, it will inpact on your overall performace, but improve latency\n"
 					);
 
-#ifdef _DEBUG
-					ImGui::Text("Dev");
-					ImGui::Separator();
 
-					if (ImGui::Checkbox("Console", &cfg::dev::console))
-						if (!cfg::dev::console) LogHelper::Free();
-
-					static int key_out;
-					if (ImGui::Button("Open Menu Key"))
-					{
-						for (int i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; i++)
-						{
-							if (ImGui::IsKeyPressed((ImGuiKey)i))
-							{
-								key_out = i;
-								LOGF(VERBOSE, "Changed the open menu key to {}", key_out);
-								break;
-							}
-						}
-					}
-
-					ImGui::SliderInt("Cache Refresh Rate", &cfg::dev::cache_refresh_rate, 0, 100, "%dms");
-					ImGui::Checkbox("Force Show Flags", &cfg::dev::force_show_flags);
-#endif
 				}
 			}
 			ImGui::EndChild();

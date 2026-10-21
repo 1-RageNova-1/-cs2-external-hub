@@ -1,3 +1,7 @@
+#pragma once
+
+#include "core/engine/types/Vec3.hpp"
+
 enum bone_index : DWORD {
     origin = 0,
     pelvis = 1,

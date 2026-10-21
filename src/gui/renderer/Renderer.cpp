@@ -6,6 +6,9 @@
 #include "gui/frontend/menu/Menu.hpp"
 #include "gui/frontend/overlays/Overlays.hpp"
 #include "gui/frontend/triggerbot/Triggerbot.hpp"
+#include "gui/frontend/aimbot/Aimbot.hpp"
+#include "config/Config.hpp"
+#include "gui/frontend/splash/Splash.hpp"
 
 bool Renderer::Init() {
     return GetInstance().InitImpl();
@@ -47,6 +50,9 @@ bool Renderer::InitImpl() {
     Esp::Init();
     Overlays::Init();
     Triggerbot::Init();
+    Aimbot::Init();
+
+    Splash::Init(Window::device);
 
     // Focus the game
     SetForegroundWindow(Engine::GetProcess()->hwnd_);
@@ -66,8 +72,26 @@ bool Renderer::InitImpl() {
 }
 
 void Renderer::DestroyImpl() {
-    isRunning = false; // Prepare to stop thread loop
-    LOGF(VERBOSE, "Successfully programed renderer destruction...");
+    LOGF(INFO, "[unload] safe uninject starting...");
+
+    // disable features so no more memory writes
+    cfg::aimbot::enabled = false;
+    cfg::triggerbot::enabled = false;
+    cfg::enabled = false;
+
+    Splash::Shutdown();
+
+    // restore capture affinity so OBS state is normal
+    if (Window::hwnd)
+        Window::SetAffinity(Window::hwnd, WindowAffinity::Disabled);
+
+    // persist config
+    Config::Write();
+
+    isRunning = false;
+    Window::shouldRun = false;
+
+    LOGF(INFO, "[unload] flags cleared, config saved, exiting render loop");
 }
 
 void Renderer::ThreadImpl() {
@@ -91,9 +115,17 @@ void Renderer::ThreadImpl() {
 void Renderer::Render() {
     Window::StartRender();
 
+        if (Splash::IsActive()) {
+            Splash::Render();
+            Window::EndRender();
+            return;
+        }
+
     Esp::Render();
     Overlays::Render();
     Triggerbot::Run();
+    Aimbot::Run();
+    Aimbot::DrawFov();
 
     Menu::RenderStartupHelp();
     if (isOpen) Menu::Render();
@@ -131,8 +163,12 @@ bool Renderer::HandleState() {
         std::thread(Config::Write).detach(); // Not needed, but just in case
     }
 
-    if (pressed_end)
-        this->isRunning = false;
+    // Safe uninject: END or DELETE
+    bool pressed_delete = (GetAsyncKeyState(VK_DELETE) & 0x8000);
+    if (pressed_end || pressed_delete) {
+        LOGF(INFO, "[unload] hotkey pressed — safe uninject");
+        DestroyImpl();
+    }
 
     was_holding = pressed_insert || pressed_rshift;
     return should_toggle;
