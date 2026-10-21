@@ -40,24 +40,40 @@ jobs:
           client_dll = offsets.get("client.dll") or offsets.get("client_dll") or {}
           dw_view = client_dll.get("dwViewAngles")
           if dw_view is None:
-              raise SystemExit("dwViewAngles missing from a2x offsets.json")
+              raise SystemExit("dwViewAngles missing")
 
-          classes = (client.get("client.dll") or client).get("classes") or {}
-          def field(cls, name):
-              c = classes.get(cls) or {}
-              f = (c.get("fields") or {}).get(name) or {}
-              return f.get("offset")
+          classes = (client.get("client.dll") or {}).get("classes") or {}
 
-          m_id = field("C_CSPlayerPawn", "m_iIDEntIndex")
-          m_punch = field("C_CSPlayerPawn", "m_aimPunchAngle")
-          if m_punch is None:
-              m_punch = field("C_CSPlayerPawnBase", "m_aimPunchAngle")
+          def field(*names):
+              for cls, fname in names:
+                  c = classes.get(cls) or {}
+                  fields = c.get("fields") or {}
+                  if not isinstance(fields, dict):
+                      continue
+                  v = fields.get(fname)
+                  if v is None:
+                      continue
+                  if isinstance(v, dict):
+                      v = v.get("offset")
+                  if isinstance(v, int):
+                      return v
+              return None
+
+          m_id = field(
+              ("C_CSPlayerPawn", "m_iIDEntIndex"),
+              ("C_CSPlayerPawnBase", "m_iIDEntIndex"),
+          )
+          m_punch = field(
+              ("C_CSPlayerPawn", "m_aimPunchAngle"),
+              ("C_CSPlayerPawnBase", "m_aimPunchAngle"),
+              ("C_CSPlayerPawn", "m_aimPunchCache"),
+          )
 
           out = {
               "build": build,
               "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
               "source": "a2x/cs2-dumper",
-              "dwViewAngles": hex(int(dw_view)) if not isinstance(dw_view, str) else dw_view,
+              "dwViewAngles": hex(int(dw_view)),
           }
           if m_id is not None:
               out["m_iIDEntIndex"] = hex(int(m_id))
@@ -65,10 +81,7 @@ jobs:
               out["m_aimPunchAngle"] = hex(int(m_punch))
 
           path = "offsets.json"
-          old = None
-          if os.path.exists(path):
-              with open(path, "r", encoding="utf-8") as f:
-                  old = f.read().strip()
+          old = open(path).read().strip() if os.path.exists(path) else None
           new = json.dumps(out, indent=2) + "\n"
 
           def core(s):
@@ -85,8 +98,7 @@ jobs:
               if env_path:
                   open(env_path, "a").write("CHANGED=0\n")
           else:
-              with open(path, "w", encoding="utf-8") as f:
-                  f.write(new)
+              open(path, "w").write(new)
               print("wrote", path)
               print(new)
               if env_path:
